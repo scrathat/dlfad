@@ -1,6 +1,7 @@
 from __future__ import print_function
 
 import argparse
+import functools
 import glob
 import imghdr
 import os
@@ -8,10 +9,9 @@ import re
 import sys
 from collections import defaultdict
 
+import cv2
 import numpy as np
 import pandas as pd
-
-import cv2
 import rosbag
 from cv_bridge import CvBridge, CvBridgeError
 
@@ -130,6 +130,38 @@ def main():
     steering_csv_path = os.path.join(args.outdir, 'steering.csv')
     steering_df = pd.DataFrame(data=steering_dict, columns=steering_cols)
     steering_df.to_csv(steering_csv_path, index=False)
+
+    camera_df['timestamp'] = pd.to_datetime(camera_df['timestamp'])
+    camera_df.set_index(['timestamp'], inplace=True)
+    camera_df.index.rename('index', inplace=True)
+    steering_df['timestamp'] = pd.to_datetime(steering_df['timestamp'])
+    steering_df.set_index(['timestamp'], inplace=True)
+    steering_df.index.rename('index', inplace=True)
+
+    merged = functools.reduce(lambda left, right:
+                              pd.merge(left,
+                                       right,
+                                       how='outer',
+                                       left_index=True,
+                                       right_index=True),
+                              [camera_df, steering_df])
+    merged.interpolate(method='time', inplace=True)
+
+    filtered_cols = [
+        'timestamp', 'width', 'height', 'frame_id', 'filename', 'angle',
+        'torque', 'speed'
+    ]
+    filtered = merged.loc[camera_df.index]  # back to only camera rows
+    filtered.fillna(0.0, inplace=True)
+    filtered['timestamp'] = filtered.index.astype(
+        'int')  # add back original timestamp integer col
+    filtered['width'] = filtered['width'].astype('int')  # cast back to int
+    filtered['height'] = filtered['height'].astype('int')  # cast back to int
+    filtered = filtered[
+        filtered_cols]  # filter and reorder columns for final output
+
+    interpolated_csv_path = os.path.join(args.outdir, 'interpolated.csv')
+    filtered.to_csv(interpolated_csv_path, header=True)
 
 
 if __name__ == '__main__':
