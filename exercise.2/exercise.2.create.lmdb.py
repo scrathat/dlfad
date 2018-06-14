@@ -137,7 +137,7 @@ def main():
                          image_rotate,
                          ]
 
-        map_size = int(6e9) + int(3e9) * len(augmentations)
+        map_size = int(8e9) * len(augmentations)
 
         with open(csv_file_name, newline='') as csvFile, \
                     lmdb.open(lmdb_name, map_size=map_size).begin(write=True) as txn, \
