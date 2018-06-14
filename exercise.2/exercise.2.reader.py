@@ -121,6 +121,7 @@ def main():
 
         camera_topics = []
         for pos in ['left', 'center', 'right']:
+                os.makedirs(os.path.join(args.outdir, pos))
                 camera_topics += ['/{}_camera/image_color'.format(pos)]
                 camera_topics += ['/{}_camera/image_color/compressed'.format(pos)]
         steering_topics = ['/vehicle/steering_report']
