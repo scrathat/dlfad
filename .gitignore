@@ -1,3 +1,5 @@
 exercise.2/data*/*
 exercise.2/out*/*
 exercise.2/training.data*/*
+.idea
+.ipynb_checkpoints
