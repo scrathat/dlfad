@@ -24,6 +24,8 @@ RUN wget https://bootstrap.pypa.io/get-pip.py && \
         ipykernel \
         jupyter \
         pyyaml \
+        tqdm \
+        'python-dateutil>=2.5.0' \
     && \
     python -m ipykernel.kernelspec
 

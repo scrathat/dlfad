@@ -58,7 +58,7 @@ def write_image(bridge, out_dir, msg, fmt='png'):
 def process_camera_topic(bridge, d, msg, out_dir, topic):
         match = re.search(r'(left|center|right)', topic)
         if match:
-                path = out_dir + match.group(0)
+                path = os.path.join(out_dir, match.group(0))
                 r = write_image(bridge, path, msg, fmt='jpg')
                 r['filename'] = os.path.relpath(r['filename'], out_dir)
                 d['timestamp'].append(msg.header.stamp.to_nsec())
