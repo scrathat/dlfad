@@ -19,7 +19,7 @@ def main():
         args = parser.parse_args()
 
         with lmdb.open(args.indir).begin().cursor() as cursor:
-                head = itertools.islice(cursor, 10)
+                head = itertools.islice(cursor, 100)
                 for key, value in head:
                         filename = key.decode()
                         data = pickle.loads(value)

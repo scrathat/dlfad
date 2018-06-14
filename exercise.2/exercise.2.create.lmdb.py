@@ -1,5 +1,6 @@
 import argparse
 import csv
+import itertools
 import os
 import pickle
 import random
@@ -10,15 +11,20 @@ import cv2
 import lmdb
 import numpy as np
 from tqdm import tqdm
+from imgaug import augmenters as iaa
 
 
+# def augment_brightness(image, angle):
+#         image1 = cv2.cvtColor(image, cv2.COLOR_RGB2HSV)
+#         random_bright = .25 + np.random.uniform()
+#         # print(random_bright)
+#         image1[:, :, 2] = image1[:, :, 2] * random_bright
+#         image1 = cv2.cvtColor(image1, cv2.COLOR_HSV2RGB)
+#         return image1, angle
 def augment_brightness(image, angle):
-        image1 = cv2.cvtColor(image, cv2.COLOR_RGB2HSV)
         random_bright = .25 + np.random.uniform()
-        # print(random_bright)
-        image1[:, :, 2] = image1[:, :, 2] * random_bright
-        image1 = cv2.cvtColor(image1, cv2.COLOR_HSV2RGB)
-        return image1, angle
+        return iaa.Multiply(mul=random_bright).augment_image(image), angle
+
 
 
 def image_blur(img, angle):
@@ -29,33 +35,56 @@ def image_blur(img, angle):
         return cv2.GaussianBlur(img, (kernel_size, kernel_size), 0), angle
 
 
+# def add_random_shadow(image, angle):
+#         top_y = 320 * np.random.uniform()
+#         top_x = 0
+#         bot_x = 160
+#         bot_y = 320 * np.random.uniform()
+#         image_hls = cv2.cvtColor(image, cv2.COLOR_RGB2HLS)
+#         shadow_mask = 0 * image_hls[:, :, 1]
+#         X_m = np.mgrid[0:image.shape[0], 0:image.shape[1]][0]
+#         Y_m = np.mgrid[0:image.shape[0], 0:image.shape[1]][1]
+#
+#         shadow_mask[((X_m - top_x) * (bot_y - top_y) - (bot_x - top_x) *
+#                      (Y_m - top_y) >= 0)] = 1
+#         # random_bright = .25+.7*np.random.uniform()
+#         if np.random.randint(2) == 1:
+#                 random_bright = .5
+#                 cond1 = shadow_mask == 1
+#                 cond0 = shadow_mask == 0
+#                 if np.random.randint(2) == 1:
+#                         image_hls[:, :, 1][cond1] = image_hls[:, :, 1][
+#                                                             cond1] * random_bright
+#                 else:
+#                         image_hls[:, :, 1][cond0] = image_hls[:, :, 1][
+#                                                             cond0] * random_bright
+#         image = cv2.cvtColor(image_hls, cv2.COLOR_HLS2RGB)
+#
+#         return image, angle
+
+
 def add_random_shadow(image, angle):
         top_y = 320 * np.random.uniform()
         top_x = 0
         bot_x = 160
         bot_y = 320 * np.random.uniform()
-        image_hls = cv2.cvtColor(image, cv2.COLOR_RGB2HLS)
-        shadow_mask = 0 * image_hls[:, :, 1]
+        shadow_mask = 0 * image
+
         X_m = np.mgrid[0:image.shape[0], 0:image.shape[1]][0]
         Y_m = np.mgrid[0:image.shape[0], 0:image.shape[1]][1]
 
         shadow_mask[((X_m - top_x) * (bot_y - top_y) - (bot_x - top_x) *
                      (Y_m - top_y) >= 0)] = 1
-        # random_bright = .25+.7*np.random.uniform()
+
+        cond1 = shadow_mask == 1
+        cond0 = shadow_mask == 0
+        shadow = iaa.Multiply(mul=0.5).augment_image(image)
         if np.random.randint(2) == 1:
-                random_bright = .5
-                cond1 = shadow_mask == 1
-                cond0 = shadow_mask == 0
-                if np.random.randint(2) == 1:
-                        image_hls[:, :, 1][cond1] = image_hls[:, :, 1][
-                                                            cond1] * random_bright
-                else:
-                        image_hls[:, :, 1][cond0] = image_hls[:, :, 1][
-                                                            cond0] * random_bright
-        image = cv2.cvtColor(image_hls, cv2.COLOR_HLS2RGB)
+                image[cond1] = shadow[cond1]
+        else:
+                image[cond0] = shadow[cond0]
 
         return image, angle
-
 
 # randomly rotate to simulate camera jitter
 def image_rotate(img, angle):
@@ -104,7 +133,7 @@ def enc_image_aug_maybe(image, angle, augmentation=None):
                 aug_image, aug_angle = augmentation(image, angle)
         enc_aug_image = cv2.imencode('.jpg', aug_image)[1]
 
-        return augmentation.__name__ if augmentation else '', \
+        return '+' + (augmentation.__name__ if augmentation else 'identity'), \
                pickle.dumps({'image': enc_aug_image, 'angle': aug_angle})
 
 
@@ -155,7 +184,7 @@ def main():
                                                  augmentations)
 
                                 for aug, aug_dump in aug_data:
-                                        txn.put(str.encode(filename + '+' + aug),
+                                        txn.put(str.encode(filename + aug),
                                                 aug_dump)
                 finally:
                         p.close()

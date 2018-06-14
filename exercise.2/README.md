@@ -24,4 +24,4 @@ With training data lmdb sitting in directory `./training.data`:
 ```
 $ python exercise.2.visualizer.py
 ```
-Specifying input and output directories same as [before](#Specifying-input-and-output-directories)
+Specifying input directory same as [before](#Specifying-input-and-output-directories)
