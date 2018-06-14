@@ -1,4 +1,4 @@
-FROM ros:lunar-perception
+FROM ros:melodic-perception
 
 # The basics
 RUN apt-get update && apt-get install -q -y \
