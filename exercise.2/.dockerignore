@@ -1,2 +1,3 @@
-data*/*
-out*/*
+training.data.bags*/*
+training.data.files*/*
+training.data
