@@ -1,4 +1,5 @@
 import argparse
+import pickle
 import sys
 
 import lmdb
@@ -11,28 +12,24 @@ import torch.utils.data as data
 
 class udacityData(data.Dataset):
         def __init__(self, path):
-                with lmdb.open(path,
-                               max_readers=1,
-                               readonly=True,
-                               lock=False,
-                               readahead=False,
-                               meminit=False) as self.env, \
-                            self.env.begin(write=False) as txn:
+                self.env = lmdb.open(path,
+                                     max_readers=1,
+                                     readonly=True,
+                                     lock=False,
+                                     readahead=False,
+                                     meminit=False)
+
+                with self.env.begin(write=False) as txn:
                         self.length = txn.stat()['entries']
                 assert self.length
 
         def __getitem__(self, index):
-                # Data = []
-                # Target = []
-                #
-                # with self.data_env.begin() as f:
-                #         key = '{:08}'.format(index)
-                #         data = f.get(key)
-                #         flat_data = np.fromstring(data, dtype=float)
-                #         data = flat_data.reshape(150, 6).astype('float32')
-                #         Data = data
-                #
-                # return Data, Target
+                key = index  # TODO
+                with self.env.begin(write=False) as txn:
+                        value = pickle.loads(txn.get(key))
+                        image = value['image']
+                        angle = value['angle']
+                return image, angle
 
         def __len__(self):
                 return self.length
@@ -42,17 +39,17 @@ class CG23(nn.Module):
         def __init__(self):
                 super(CG23, self).__init__()
                 self.features = nn.Sequential(
-                        nn.Conv2d(32, 3, kernel_size=3, padding=1),
+                        nn.Conv2d(32, 64, kernel_size=3, padding=1).Shape,
                         nn.ReLU(inplace=True),
                         nn.MaxPool2d(kernel_size=2, stride=2),
                         nn.Dropout(0.25),
 
-                        nn.Conv2d(64, 3, kernel_size=3, padding=1),
+                        nn.Conv2d(64, 128, kernel_size=3, padding=1),
                         nn.ReLU(inplace=True),
                         nn.MaxPool2d(kernel_size=2, stride=2),
                         nn.Dropout(0.25),
 
-                        nn.Conv2d(128, 3, kernel_size=3, padding=1),
+                        nn.Conv2d(128, 1024, kernel_size=3, padding=1),
                         nn.ReLU(inplace=True),
                         nn.MaxPool2d(kernel_size=2, stride=2),
                         nn.Dropout(0.5),
